@@ -479,44 +479,49 @@ def logout():
 @login_required
 def dashboard():
     """Display home dashboard."""
-    user_id = session.get('user_id')
-    user = User.query.get(user_id)
-    
-    # Upcoming reminders (next 24 hours)
-    now = datetime.utcnow()
-    tomorrow = now + timedelta(hours=24)
-    upcoming_reminders = Reminder.query.filter(
-        Reminder.user_id == user_id,
-        Reminder.status == 'pending',
-        Reminder.reminder_time >= now,
-        Reminder.reminder_time <= tomorrow
-    ).order_by(Reminder.reminder_time).all()
-    
-    # Recent prescriptions (last 3)
-    recent_prescriptions = Prescription.query.filter_by(user_id=user_id).order_by(
-        Prescription.uploaded_on.desc()
-    ).limit(3).all()
-    
-    # Medicine statistics
-    all_medicines = Medicine.query.filter_by(user_id=user_id).all()
-    verified_count = sum(1 for m in all_medicines if m.verified == 'valid')
-    fake_count = sum(1 for m in all_medicines if m.verified == 'fake')
-    suspicious_count = sum(1 for m in all_medicines if m.verified == 'suspicious')
-    total_medicines = len(all_medicines)
-    
-    verified_percentage = (verified_count / total_medicines * 100) if total_medicines > 0 else 0
-    
-    return render_template(
-        'index.html',
-        user=user,
-        upcoming_reminders=upcoming_reminders,
-        recent_prescriptions=recent_prescriptions,
-        verified_percentage=round(verified_percentage, 1),
-        total_medicines=total_medicines,
-        verified_count=verified_count,
-        fake_count=fake_count,
-        suspicious_count=suspicious_count
-    )
+    try:
+        user_id = session.get('user_id')
+        user = User.query.get(user_id)
+        
+        # Upcoming reminders (next 24 hours)
+        now = datetime.utcnow()
+        tomorrow = now + timedelta(hours=24)
+        upcoming_reminders = Reminder.query.filter(
+            Reminder.user_id == user_id,
+            Reminder.status == 'pending',
+            Reminder.reminder_time >= now,
+            Reminder.reminder_time <= tomorrow
+        ).order_by(Reminder.reminder_time).all()
+        
+        # Recent prescriptions (last 3)
+        recent_prescriptions = Prescription.query.filter_by(user_id=user_id).order_by(
+            Prescription.uploaded_on.desc()
+        ).limit(3).all()
+        
+        # Medicine statistics
+        all_medicines = Medicine.query.filter_by(user_id=user_id).all()
+        verified_count = sum(1 for m in all_medicines if m.verified == 'valid')
+        fake_count = sum(1 for m in all_medicines if m.verified == 'fake')
+        suspicious_count = sum(1 for m in all_medicines if m.verified == 'suspicious')
+        total_medicines = len(all_medicines)
+        
+        verified_percentage = (verified_count / total_medicines * 100) if total_medicines > 0 else 0
+        
+        return render_template(
+            'index.html',
+            user=user,
+            upcoming_reminders=upcoming_reminders,
+            recent_prescriptions=recent_prescriptions,
+            verified_percentage=round(verified_percentage, 1),
+            total_medicines=total_medicines,
+            verified_count=verified_count,
+            fake_count=fake_count,
+            suspicious_count=suspicious_count
+        )
+    except Exception as e:
+        print(f"Dashboard error: {e}")
+        flash('Error loading dashboard. Please try again.', 'danger')
+        return redirect(url_for('login'))
 
 
 # ============================================================================
@@ -989,18 +994,23 @@ def init_app():
             except Exception as e:
                 print(f"Database creation error (may already exist): {e}")
             
-            # Initialize scheduler (only in main process, not in gunicorn workers)
-            is_production = bool(os.environ.get('PORT'))
-            is_main_process = os.environ.get('WERKZEUG_RUN_MAIN') == 'true'
-            should_init_scheduler = is_production or is_main_process
+            # Initialize scheduler only in development (Flask debug mode)
+            # In production (Render.com), scheduler is disabled to avoid issues
+            is_development = os.environ.get('FLASK_ENV') == 'development'
+            is_debug_mode = os.environ.get('WERKZEUG_RUN_MAIN') == 'true'
+            is_production_render = bool(os.environ.get('RENDER'))
+            
+            should_init_scheduler = (is_development or is_debug_mode) and not is_production_render
             
             if should_init_scheduler:
                 try:
                     start_scheduler()
                     reschedule_existing_reminders(db.session, Reminder, Medicine)
-                    print("Scheduler initialized successfully")
+                    print("Scheduler initialized successfully (Development mode)")
                 except Exception as e:
                     print(f"Warning: Scheduler initialization issue: {e}")
+            elif is_production_render:
+                print("Production mode detected - Scheduler disabled for Render.com")
             
             # Create upload folder
             try:
