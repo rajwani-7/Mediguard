@@ -41,9 +41,17 @@ except ImportError:
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mediaguard.db'
+
+# Database configuration - use environment variable or default to SQLite
+db_uri = os.environ.get('DATABASE_URL')
+if db_uri and db_uri.startswith('postgres://'):
+    # Fix for newer SQLAlchemy versions
+    db_uri = db_uri.replace('postgres://', 'postgresql://', 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = db_uri or 'sqlite:///mediaguard.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = 'uploaded_prescriptions'
+
+# Upload folder configuration
+app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER', 'uploaded_prescriptions')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload
 
 db.init_app(app)
@@ -65,6 +73,47 @@ def login_required(f):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
+
+
+# ============================================================================
+# ERROR HANDLERS
+# ============================================================================
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Handle 500 errors."""
+    db.session.rollback()
+    flash('An internal error occurred. Please try again.', 'danger')
+    return redirect(url_for('dashboard')), 500
+
+
+@app.errorhandler(404)
+def not_found_error(error):
+    """Handle 404 errors."""
+    flash('Page not found.', 'warning')
+    return redirect(url_for('dashboard')), 404
+
+
+@app.errorhandler(403)
+def forbidden_error(error):
+    """Handle 403 errors."""
+    flash('Access denied.', 'danger')
+    return redirect(url_for('dashboard')), 403
+
+
+# ============================================================================
+# ROUTE: HEALTH CHECK
+# ============================================================================
+
+@app.route('/health')
+def health_check():
+    """Health check endpoint for deployment."""
+    try:
+        # Quick database check
+        User.query.first()
+        return jsonify({'status': 'healthy', 'service': 'mediaguard'}), 200
+    except Exception as e:
+        return jsonify({'status': 'unhealthy', 'error': str(e)}), 503
 
 
 # ============================================================================
@@ -925,22 +974,64 @@ def inject_config():
     )
 
 
+# ============================================================================
+# DATABASE & SCHEDULER INITIALIZATION
+# ============================================================================
+
+def init_app():
+    """Initialize the application."""
+    try:
+        with app.app_context():
+            # Create database tables
+            try:
+                db.create_all()
+                print("Database tables created successfully")
+            except Exception as e:
+                print(f"Database creation error (may already exist): {e}")
+            
+            # Initialize scheduler (only in main process, not in gunicorn workers)
+            is_production = bool(os.environ.get('PORT'))
+            is_main_process = os.environ.get('WERKZEUG_RUN_MAIN') == 'true'
+            should_init_scheduler = is_production or is_main_process
+            
+            if should_init_scheduler:
+                try:
+                    start_scheduler()
+                    reschedule_existing_reminders(db.session, Reminder, Medicine)
+                    print("Scheduler initialized successfully")
+                except Exception as e:
+                    print(f"Warning: Scheduler initialization issue: {e}")
+            
+            # Create upload folder
+            try:
+                os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+                print(f"Upload folder ready: {app.config['UPLOAD_FOLDER']}")
+            except Exception as e:
+                print(f"Warning: Could not create upload folder: {e}")
+    except Exception as e:
+        print(f"Critical error during app initialization: {e}")
+        # Don't fail - let the app start anyway
+
+
+# Initialize app on startup
+try:
+    init_app()
+except Exception as e:
+    print(f"App initialization error: {e}")
+
+
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-        start_scheduler()
-        reschedule_existing_reminders(db.session, Reminder, Medicine)
-        print("\n" + "="*60)
-        print("MediGuard Application Starting")
-        print("="*60)
-        print(f"EasyOCR Available: {EASYOCR_AVAILABLE}")
-        print(f"Pytesseract Available: {PYTESSERACT_AVAILABLE}")
-        print(f"OpenCV Available: {CV2_AVAILABLE}")
-        print(f"Pyzbar Available: {PYZBAR_AVAILABLE}")
-        print("="*60)
-        port = int(os.environ.get('PORT', 5000))
-        print(f"Navigate to: http://localhost:{port}")
-        print("="*60 + "\n")
+    print("\n" + "="*60)
+    print("MediGuard Application Starting")
+    print("="*60)
+    print(f"EasyOCR Available: {EASYOCR_AVAILABLE}")
+    print(f"Pytesseract Available: {PYTESSERACT_AVAILABLE}")
+    print(f"OpenCV Available: {CV2_AVAILABLE}")
+    print(f"Pyzbar Available: {PYZBAR_AVAILABLE}")
+    print("="*60)
+    port = int(os.environ.get('PORT', 5000))
+    print(f"Navigate to: http://localhost:{port}")
+    print("="*60 + "\n")
     
     try:
         port = int(os.environ.get('PORT', 5000))
