@@ -4,37 +4,37 @@
 {% block page_title %}Log In{% endblock %}
 
 {% block content %}
-<div class="max-w-md mx-auto mt-12">
-    <div class="bg-white rounded-lg shadow-lg p-8">
+<div class="min-h-screen md:min-h-auto flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-white rounded-lg shadow-lg p-6 md:p-8">
         <div class="text-center mb-6">
-            <div class="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-heartbeat text-white text-3xl"></i>
+            <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center mx-auto mb-3 md:mb-4">
+                <i class="fas fa-heartbeat text-white text-2xl md:text-3xl"></i>
             </div>
-            <h1 class="text-3xl font-bold text-gray-800">MediGuard</h1>
-            <p class="text-gray-500 mt-2">Welcome back</p>
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-800">MediGuard</h1>
+            <p class="text-gray-500 mt-1 md:mt-2 text-sm md:text-base">Welcome back</p>
         </div>
         
         <form method="POST" class="space-y-4">
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Username</label>
-                <input type="text" name="username" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" placeholder="Enter username">
+                <input type="text" name="username" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-base" placeholder="Enter username">
             </div>
             
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
-                <input type="password" name="password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" placeholder="Enter password">
+                <input type="password" name="password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-base" placeholder="Enter password">
             </div>
             
-            <button type="submit" class="w-full btn-primary mt-6">Log In</button>
+            <button type="submit" class="w-full btn-primary mt-6 py-3 text-base font-semibold">Log In</button>
         </form>
         
-        <div class="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <p class="text-sm text-green-800"><strong>Demo Login:</strong></p>
-            <p class="text-sm text-green-700 mt-1">Username: <code class="bg-white px-2 py-1 rounded">johndoe</code></p>
-            <p class="text-sm text-green-700">Password: <code class="bg-white px-2 py-1 rounded">password123</code></p>
+        <div class="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg text-sm">
+            <p class="text-green-800 font-semibold">Demo Login:</p>
+            <p class="text-green-700 mt-2">Username: <code class="bg-white px-2 py-1 rounded text-xs">johndoe</code></p>
+            <p class="text-green-700 mt-1">Password: <code class="bg-white px-2 py-1 rounded text-xs">password123</code></p>
         </div>
         
-        <p class="text-center text-gray-600 mt-6">
+        <p class="text-center text-gray-600 mt-6 text-sm md:text-base">
             Don't have an account? <a href="{{ url_for('signup') }}" class="text-blue-600 hover:underline font-semibold">Sign Up</a>
         </p>
     </div>

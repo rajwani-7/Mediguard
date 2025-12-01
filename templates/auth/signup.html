@@ -4,50 +4,51 @@
 {% block page_title %}Create Account{% endblock %}
 
 {% block content %}
-<div class="max-w-md mx-auto mt-12">
-    <div class="bg-white rounded-lg shadow-lg p-8">
+<div class="min-h-screen md:min-h-auto flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-white rounded-lg shadow-lg p-6 md:p-8">
         <div class="text-center mb-6">
-            <div class="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-heartbeat text-white text-3xl"></i>
+            <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center mx-auto mb-3 md:mb-4">
+                <i class="fas fa-heartbeat text-white text-2xl md:text-3xl"></i>
             </div>
-            <h1 class="text-3xl font-bold text-gray-800">MediGuard</h1>
-            <p class="text-gray-500 mt-2">Create your account</p>
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-800">MediGuard</h1>
+            <p class="text-gray-500 mt-1 md:mt-2 text-sm md:text-base">Create your account</p>
         </div>
         
-        <form method="POST" class="space-y-4">
+        <form method="POST" class="space-y-3 md:space-y-4">
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
-                <input type="text" name="name" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" placeholder="Enter your full name">
+                <input type="text" name="name" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-base" placeholder="Enter your full name">
             </div>
             
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Username</label>
-                <input type="text" name="username" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" placeholder="Enter username (alphanumeric)">
+                <input type="text" name="username" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-base" placeholder="Enter username">
             </div>
             
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Email</label>
-                <input type="email" name="email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" placeholder="Enter email address">
+                <input type="email" name="email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-base" placeholder="Enter email address">
             </div>
             
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
-                <input type="password" name="password" required minlength="6" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" placeholder="Enter password (min 6 characters)">
+                <input type="password" name="password" required minlength="6" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-base" placeholder="Min 6 characters">
             </div>
             
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Confirm Password</label>
-                <input type="password" name="confirm_password" required minlength="6" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" placeholder="Re-enter password">
+                <input type="password" name="confirm_password" required minlength="6" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-base" placeholder="Re-enter password">
             </div>
             
-            <button type="submit" class="w-full btn-primary mt-6">Create Account</button>
+            <button type="submit" class="w-full btn-primary mt-6 py-3 text-base font-semibold">Create Account</button>
         </form>
         
-        <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p class="text-sm text-blue-800"><strong>Demo Account:</strong> johndoe / password123</p>
+        <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+            <p class="text-blue-800 font-semibold">Demo Account:</p>
+            <p class="text-blue-700 mt-1">johndoe / password123</p>
         </div>
         
-        <p class="text-center text-gray-600 mt-6">
+        <p class="text-center text-gray-600 mt-6 text-sm md:text-base">
             Already have an account? <a href="{{ url_for('login') }}" class="text-blue-600 hover:underline font-semibold">Log In</a>
         </p>
     </div>

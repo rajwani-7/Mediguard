@@ -2,11 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>{% block title %}MediGuard - Health Management{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-size: 16px; /* Prevents zoom on iOS */
+        }
+        
         .sidebar-link:hover {
             background-color: rgba(59, 130, 246, 0.1);
         }
@@ -19,68 +27,107 @@
         .btn-danger {
             @apply px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition;
         }
+        
+        /* Mobile sidebar animation */
+        .sidebar {
+            transition: transform 0.3s ease-in-out;
+        }
+        .sidebar.hidden-mobile {
+            transform: translateX(-100%);
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 40;
+                width: 64;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-50">
-    <div class="flex h-screen">
+    <div class="flex h-screen flex-col md:flex-row">
+        <!-- Mobile Header -->
+        <div class="md:hidden bg-white border-b border-gray-200 shadow-sm p-4 flex justify-between items-center z-50">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-heartbeat text-white text-lg"></i>
+                </div>
+                <h1 class="text-xl font-bold text-gray-800">MediGuard</h1>
+            </div>
+            <button id="menuToggle" class="text-gray-700 hover:text-blue-600 text-xl focus:outline-none">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
         <!-- Sidebar -->
-        <div class="w-64 bg-white shadow-lg border-r border-gray-200">
-            <div class="p-6 border-b border-gray-200">
+        <div id="sidebar" class="sidebar w-64 bg-white shadow-lg border-r border-gray-200 hidden md:block md:relative fixed left-0 top-0 h-screen z-40 pt-20 md:pt-0">
+            <div class="p-6 border-b border-gray-200 hidden md:block">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
                         <i class="fas fa-heartbeat text-white text-xl"></i>
                     </div>
                     <h1 class="text-2xl font-bold text-gray-800">MediGuard</h1>
                 </div>
-                <p class="text-sm text-gray-500 mt-2">Health Management System</p>
+                <p class="text-sm text-gray-500 mt-2">Health Management</p>
             </div>
             
             <nav class="mt-6">
                 {% if session.get('user_id') %}
-                <a href="{{ url_for('dashboard') }}" class="sidebar-link block px-6 py-3 text-gray-700 hover:text-blue-600">
-                    <i class="fas fa-home w-5"></i> Dashboard
+                <a href="{{ url_for('dashboard') }}" class="sidebar-link block px-6 py-3 text-gray-700 hover:text-blue-600 hover:bg-blue-50">
+                    <i class="fas fa-home w-5 mr-3"></i><span class="hidden sm:inline">Dashboard</span>
                 </a>
-                <a href="{{ url_for('upload_prescription') }}" class="sidebar-link block px-6 py-3 text-gray-700 hover:text-blue-600">
-                    <i class="fas fa-upload w-5"></i> Upload Prescription
+                <a href="{{ url_for('upload_prescription') }}" class="sidebar-link block px-6 py-3 text-gray-700 hover:text-blue-600 hover:bg-blue-50">
+                    <i class="fas fa-upload w-5 mr-3"></i><span class="hidden sm:inline">Upload</span>
                 </a>
-                <a href="{{ url_for('prescriptions') }}" class="sidebar-link block px-6 py-3 text-gray-700 hover:text-blue-600">
-                    <i class="fas fa-list w-5"></i> Prescriptions
+                <a href="{{ url_for('prescriptions') }}" class="sidebar-link block px-6 py-3 text-gray-700 hover:text-blue-600 hover:bg-blue-50">
+                    <i class="fas fa-list w-5 mr-3"></i><span class="hidden sm:inline">Prescriptions</span>
                 </a>
-                <a href="{{ url_for('verify_medicine') }}" class="sidebar-link block px-6 py-3 text-gray-700 hover:text-blue-600">
-                    <i class="fas fa-check-circle w-5"></i> Verify Medicine
+                <a href="{{ url_for('verify_medicine') }}" class="sidebar-link block px-6 py-3 text-gray-700 hover:text-blue-600 hover:bg-blue-50">
+                    <i class="fas fa-check-circle w-5 mr-3"></i><span class="hidden sm:inline">Verify</span>
+                </a>
+                <a href="{{ url_for('view_reminders') }}" class="sidebar-link block px-6 py-3 text-gray-700 hover:text-blue-600 hover:bg-blue-50">
+                    <i class="fas fa-bell w-5 mr-3"></i><span class="hidden sm:inline">Reminders</span>
                 </a>
                 <div class="px-6 py-3 border-t border-gray-200 mt-6">
                     <a href="{{ url_for('logout') }}" class="block text-red-600 hover:text-red-800">
-                        <i class="fas fa-sign-out-alt w-5"></i> Logout
+                        <i class="fas fa-sign-out-alt w-5 mr-3"></i><span class="hidden sm:inline">Logout</span>
                     </a>
                 </div>
                 {% endif %}
             </nav>
         </div>
         
+        <!-- Mobile Overlay -->
+        <div id="sidebarOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 md:hidden z-30"></div>
+
         <!-- Main Content -->
-        <div class="flex-1 flex flex-col overflow-hidden">
-            <!-- Top Navigation -->
-            <div class="bg-white border-b border-gray-200 shadow-sm">
-                <div class="px-6 py-4 flex justify-between items-center">
-                    <h2 class="text-xl font-semibold text-gray-800">{% block page_title %}{% endblock %}</h2>
+        <div class="flex-1 flex flex-col overflow-hidden w-full">
+            <!-- Top Navigation (Desktop) -->
+            <div class="hidden md:block bg-white border-b border-gray-200 shadow-sm">
+                <div class="px-4 md:px-6 py-3 md:py-4 flex justify-between items-center">
+                    <h2 class="text-lg md:text-xl font-semibold text-gray-800">{% block page_title %}{% endblock %}</h2>
                     {% if session.get('user_id') %}
-                    <div class="flex items-center gap-4">
-                        <div class="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white font-bold">
+                    <div class="flex items-center gap-2 md:gap-4">
+                        <div class="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white font-bold text-sm md:text-base">
                             {{ session.get('username', 'U')[0].upper() }}
                         </div>
-                        <span class="text-gray-700">{{ session.get('username', 'User') }}</span>
+                        <span class="text-gray-700 text-sm md:text-base">{{ session.get('username', 'User') }}</span>
                     </div>
                     {% endif %}
                 </div>
             </div>
             
             <!-- Flash Messages -->
-            <div class="px-6 pt-4">
+            <div class="px-4 md:px-6 pt-4">
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         {% for category, message in messages %}
-                        <div class="p-4 mb-4 rounded-lg {% if category == 'success' %}bg-green-100 text-green-700{% elif category == 'danger' %}bg-red-100 text-red-700{% elif category == 'warning' %}bg-yellow-100 text-yellow-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                        <div class="p-3 md:p-4 mb-4 rounded-lg text-sm md:text-base {% if category == 'success' %}bg-green-100 text-green-700{% elif category == 'danger' %}bg-red-100 text-red-700{% elif category == 'warning' %}bg-yellow-100 text-yellow-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                            <button onclick="this.parentElement.style.display='none'" class="float-right text-lg">&times;</button>
                             {{ message }}
                         </div>
                         {% endfor %}
@@ -90,13 +137,47 @@
             
             <!-- Page Content -->
             <div class="flex-1 overflow-auto">
-                <div class="p-6">
+                <div class="p-4 md:p-6 max-w-7xl mx-auto w-full">
                     {% block content %}{% endblock %}
                 </div>
             </div>
         </div>
     </div>
     
+    <script>
+        // Mobile menu toggle
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        
+        function toggleSidebar() {
+            sidebar.classList.toggle('hidden');
+            sidebarOverlay.classList.toggle('hidden');
+        }
+        
+        menuToggle?.addEventListener('click', toggleSidebar);
+        sidebarOverlay?.addEventListener('click', toggleSidebar);
+        
+        // Close sidebar when clicking on a link
+        sidebar.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth < 768) {
+                    sidebar.classList.add('hidden');
+                    sidebarOverlay.classList.add('hidden');
+                }
+            });
+        });
+        
+        // Close sidebar on window resize
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 768) {
+                sidebar.classList.remove('hidden');
+                sidebarOverlay.classList.add('hidden');
+            }
+        });
+    </script>
+    
     {% block scripts %}{% endblock %}
 </body>
 </html>
+
