@@ -1,0 +1,296 @@
+{% extends 'layout.html' %}
+
+{% block title %}Verify Medicine - MediGuard{% endblock %}
+{% block page_title %}Medicine Authenticity Checker{% endblock %}
+
+{% block content %}
+{% if step == 'scan' %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Verify Medicine Authenticity</h1>
+        <p class="text-gray-600 mb-6">Upload a barcode or QR code image, or capture using your camera to verify the authenticity of your medicine.</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- File Upload Section -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Upload Image</h3>
+                <form method="POST" enctype="multipart/form-data" class="space-y-4" id="uploadForm">
+                    <div class="border-2 border-dashed border-green-300 rounded-lg p-8 text-center hover:border-green-500 transition" id="dropZone">
+                        <div class="mb-4">
+                            <i class="fas fa-upload text-5xl text-green-400"></i>
+                        </div>
+                        <label class="cursor-pointer block">
+                            <span class="text-lg font-semibold text-gray-700">Click to upload barcode/QR code</span>
+                            <p class="text-sm text-gray-500 mt-2">PNG, JPG, GIF, BMP up to 16MB</p>
+                            <input type="file" name="file" required accept="image/*" class="hidden" id="fileInput" onchange="previewImage(event)">
+                        </label>
+                        <div id="imagePreview" class="mt-4"></div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Medicine Name (Optional)</label>
+                        <input type="text" name="medicine_name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500" placeholder="e.g., Aspirin 500mg">
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg transition">
+                        <i class="fas fa-check-circle mr-2"></i> Scan & Verify
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Camera Capture Section -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Capture from Camera</h3>
+                <div class="bg-gray-100 rounded-lg p-6 space-y-4">
+                    <div class="text-center">
+                        <i class="fas fa-camera text-5xl text-blue-400 mb-4"></i>
+                    </div>
+                    <video id="cameraVideo" class="w-full rounded-lg bg-black hidden" autoplay playsinline></video>
+                    <canvas id="cameraCanvas" class="hidden"></canvas>
+                    
+                    <div id="cameraPreview" class="hidden">
+                        <img id="capturedImage" class="w-full rounded-lg border-2 border-blue-300">
+                    </div>
+                    
+                    <button type="button" onclick="startCamera()" id="startCameraBtn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-lg transition">
+                        <i class="fas fa-video mr-2"></i> Start Camera
+                    </button>
+                    
+                    <button type="button" onclick="capturePhoto()" id="captureBtn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-lg transition hidden">
+                        <i class="fas fa-camera mr-2"></i> Capture Photo
+                    </button>
+                    
+                    <button type="button" onclick="stopCamera()" id="stopCameraBtn" class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-2 rounded-lg transition hidden">
+                        <i class="fas fa-stop mr-2"></i> Stop Camera
+                    </button>
+                    
+                    <button type="button" onclick="uploadCapturedImage()" id="uploadCapturedBtn" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 rounded-lg transition hidden">
+                        <i class="fas fa-check-circle mr-2"></i> Verify Captured Image
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let stream = null;
+let capturedImageData = null;
+
+function previewImage(event) {
+    const file = event.target.files[0];
+    const preview = document.getElementById('imagePreview');
+    
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = `<img src="${e.target.result}" class="mt-4 rounded-lg max-h-80 mx-auto border-2 border-green-300" alt="Preview">`;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function startCamera() {
+    const video = document.getElementById('cameraVideo');
+    const startBtn = document.getElementById('startCameraBtn');
+    const captureBtn = document.getElementById('captureBtn');
+    const stopBtn = document.getElementById('stopCameraBtn');
+    
+    navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' }
+    }).then(function(s) {
+        stream = s;
+        video.srcObject = stream;
+        video.classList.remove('hidden');
+        
+        startBtn.classList.add('hidden');
+        captureBtn.classList.remove('hidden');
+        stopBtn.classList.remove('hidden');
+    }).catch(function(err) {
+        alert('Unable to access camera: ' + err.message);
+    });
+}
+
+function capturePhoto() {
+    const video = document.getElementById('cameraVideo');
+    const canvas = document.getElementById('cameraCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+    
+    capturedImageData = canvas.toDataURL('image/jpeg');
+    
+    const preview = document.getElementById('cameraPreview');
+    const img = document.getElementById('capturedImage');
+    img.src = capturedImageData;
+    preview.classList.remove('hidden');
+    
+    document.getElementById('uploadCapturedBtn').classList.remove('hidden');
+}
+
+function stopCamera() {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+    }
+    
+    document.getElementById('cameraVideo').classList.add('hidden');
+    document.getElementById('startCameraBtn').classList.remove('hidden');
+    document.getElementById('captureBtn').classList.add('hidden');
+    document.getElementById('stopCameraBtn').classList.add('hidden');
+}
+
+function uploadCapturedImage() {
+    if (!capturedImageData) {
+        alert('Please capture an image first');
+        return;
+    }
+    
+    const canvas = document.getElementById('cameraCanvas');
+    canvas.toBlob(function(blob) {
+        const formData = new FormData();
+        formData.append('file', blob, 'camera_capture.jpg');
+        formData.append('medicine_name', document.querySelector('input[name="medicine_name"]').value);
+        
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData
+        }).then(r => r.text()).then(html => {
+            document.open();
+            document.write(html);
+            document.close();
+        });
+    }, 'image/jpeg');
+}
+
+// Drag and drop
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('border-green-500', 'bg-green-50');
+});
+
+dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('border-green-500', 'bg-green-50');
+});
+
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('border-green-500', 'bg-green-50');
+    fileInput.files = e.dataTransfer.files;
+    previewImage({target: {files: e.dataTransfer.files}});
+});
+</script>
+
+{% elif step == 'result' %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Verification Result</h1>
+        
+        <!-- Uploaded Image Preview -->
+        {% if image_path %}
+        <div class="mb-8 p-6 bg-gray-50 rounded-lg border border-gray-300">
+            <h3 class="font-bold text-gray-800 mb-3">Uploaded Image:</h3>
+            <img src="{{ image_path }}" alt="Scanned barcode" class="rounded-lg max-h-96 mx-auto">
+        </div>
+        {% endif %}
+        
+        <!-- Result Card -->
+        <div class="mb-8 p-8 rounded-lg text-center
+            {% if scan_result == 'valid' %}
+                bg-green-50 border-2 border-green-500
+            {% elif scan_result == 'fake' %}
+                bg-red-50 border-2 border-red-500
+            {% else %}
+                bg-yellow-50 border-2 border-yellow-500
+            {% endif %}
+        ">
+            {% if scan_result == 'valid' %}
+                <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
+                <h2 class="text-3xl font-bold text-green-800 mb-2">Medicine is VALID ✓</h2>
+            {% elif scan_result == 'fake' %}
+                <i class="fas fa-exclamation-circle text-6xl text-red-500 mb-4"></i>
+                <h2 class="text-3xl font-bold text-red-800 mb-2">Medicine appears FAKE ✗</h2>
+            {% else %}
+                <i class="fas fa-question-circle text-6xl text-yellow-500 mb-4"></i>
+                <h2 class="text-3xl font-bold text-yellow-800 mb-2">Medicine is SUSPICIOUS ⚠</h2>
+            {% endif %}
+            
+            {% if medicine_name %}
+            <p class="text-xl text-gray-700 mt-3 font-semibold">{{ medicine_name }}</p>
+            {% endif %}
+            
+            <div class="text-lg text-gray-700 mt-4 whitespace-pre-wrap text-left max-w-2xl mx-auto bg-white bg-opacity-50 p-4 rounded">{{ details }}</div>
+        </div>
+        
+        <!-- Scanned Code Details -->
+        <div class="bg-gray-50 rounded-lg p-6 mb-8 border-l-4 border-blue-500">
+            <h3 class="font-bold text-gray-800 mb-2">Scanned Code:</h3>
+            <p class="font-mono text-sm bg-white p-3 rounded border border-gray-300">{{ decoded_code }}</p>
+        </div>
+        
+        <!-- Medicine Details Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {% if medicine_name %}
+            <div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                <p class="text-sm text-gray-600">Medicine Name</p>
+                <p class="text-lg font-bold text-gray-800">{{ medicine_name }}</p>
+            </div>
+            {% endif %}
+            
+            <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <p class="text-sm text-gray-600">Batch Number</p>
+                <p class="text-lg font-bold text-gray-800">{{ batch or 'N/A' }}</p>
+            </div>
+            
+            <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <p class="text-sm text-gray-600">Expiry Date</p>
+                <p class="text-lg font-bold text-gray-800">{{ expiry or 'N/A' }}</p>
+            </div>
+            
+            <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <p class="text-sm text-gray-600">Manufacturer</p>
+                <p class="text-lg font-bold text-gray-800">{{ manufacturer or 'N/A' }}</p>
+            </div>
+        </div>
+        
+        {% if all_codes|length > 1 %}
+        <div class="bg-blue-50 rounded-lg p-6 mb-8 border-l-4 border-blue-500">
+            <h3 class="font-bold text-gray-800 mb-2">Additional Codes Found:</h3>
+            <ul class="space-y-2">
+                {% for code in all_codes[1:] %}
+                <li class="font-mono text-sm bg-white p-2 rounded border border-gray-300">{{ code }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        
+        <!-- Recommendation -->
+        <div class="bg-blue-100 border-l-4 border-blue-500 p-6 mb-8">
+            <p class="text-blue-800">
+                {% if scan_result == 'valid' %}
+                    <strong>Recommendation:</strong> This medicine appears to be authentic. You can proceed with confidence.
+                {% elif scan_result == 'fake' %}
+                    <strong>Warning:</strong> Do NOT use this medicine. Please consult with your pharmacist or healthcare provider immediately.
+                {% else %}
+                    <strong>Caution:</strong> The verification result is inconclusive. We recommend verifying with your pharmacist before use.
+                {% endif %}
+            </p>
+        </div>
+        
+        <!-- Actions -->
+        <div class="flex gap-4">
+            <a href="{{ url_for('verify_medicine') }}" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-lg text-center transition">
+                <i class="fas fa-redo mr-2"></i> Verify Another
+            </a>
+            <a href="{{ url_for('dashboard') }}" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 rounded-lg text-center transition">
+                <i class="fas fa-home mr-2"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends 'layout.html' %}
+
+{% block title %}Prescriptions - MediGuard{% endblock %}
+{% block page_title %}My Prescriptions{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <div class="mb-6 flex justify-between items-center">
+        <h1 class="text-3xl font-bold text-gray-800">Your Prescriptions</h1>
+        <a href="{{ url_for('upload_prescription') }}" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg transition">
+            <i class="fas fa-plus mr-2"></i> Upload New
+        </a>
+    </div>
+    
+    {% if prescriptions.items %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for prescription in prescriptions.items %}
+        <div class="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition border-t-4 border-blue-500">
+            <div class="mb-4">
+                <h3 class="text-lg font-bold text-gray-800 truncate">{{ prescription.filename }}</h3>
+                <p class="text-sm text-gray-500">
+                    <i class="far fa-calendar mr-1"></i> {{ prescription.uploaded_on.strftime('%Y-%m-%d %H:%M') }}
+                </p>
+            </div>
+            
+            <div class="bg-gray-50 rounded p-3 mb-4">
+                <p class="text-2xl font-bold text-blue-600">{{ prescription.medicines|length }}</p>
+                <p class="text-sm text-gray-600">Medicine(s) extracted</p>
+            </div>
+            
+            {% if prescription.medicines %}
+            <div class="mb-4">
+                <p class="text-sm font-semibold text-gray-700 mb-2">Medicines:</p>
+                <ul class="text-sm text-gray-600 space-y-1">
+                    {% for medicine in prescription.medicines[:3] %}
+                    <li><i class="fas fa-pills text-blue-500 mr-1"></i> {{ medicine.name }}</li>
+                    {% endfor %}
+                    {% if prescription.medicines|length > 3 %}
+                    <li class="text-gray-500">+ {{ prescription.medicines|length - 3 }} more</li>
+                    {% endif %}
+                </ul>
+            </div>
+            {% endif %}
+            
+            <a href="{{ url_for('view_prescription', id=prescription.id) }}" class="w-full block text-center bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded transition">
+                View Details
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    <div class="mt-8 flex justify-center gap-4">
+        {% if prescriptions.has_prev %}
+        <a href="{{ url_for('prescriptions', page=prescriptions.prev_num) }}" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded">Previous</a>
+        {% endif %}
+        
+        <span class="text-gray-600 py-2">Page {{ prescriptions.page }} of {{ prescriptions.pages }}</span>
+        
+        {% if prescriptions.has_next %}
+        <a href="{{ url_for('prescriptions', page=prescriptions.next_num) }}" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded">Next</a>
+        {% endif %}
+    </div>
+    
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-12 text-center">
+        <i class="fas fa-inbox text-6xl text-gray-300 mb-4"></i>
+        <p class="text-2xl font-semibold text-gray-600 mb-4">No prescriptions yet</p>
+        <p class="text-gray-500 mb-6">Start by uploading your first prescription</p>
+        <a href="{{ url_for('upload_prescription') }}" class="inline-block bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-8 rounded-lg transition">
+            <i class="fas fa-upload mr-2"></i> Upload Prescription
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

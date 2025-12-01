@@ -1,0 +1,308 @@
+{% extends 'layout.html' %}
+
+{% block title %}Upload Prescription - MediGuard{% endblock %}
+{% block page_title %}Upload Prescription{% endblock %}
+
+{% block content %}
+{% if step == 'upload' %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Smart Prescription Reader</h1>
+        <p class="text-gray-600 mb-6">Upload a prescription image and we'll extract the medicine information using OCR.</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- File Upload Section -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Upload Image</h3>
+                <form method="POST" enctype="multipart/form-data" class="space-y-4" id="uploadForm">
+                    <div class="border-2 border-dashed border-blue-300 rounded-lg p-8 text-center hover:border-blue-500 transition" id="dropZone">
+                        <div class="mb-4">
+                            <i class="fas fa-cloud-upload-alt text-5xl text-blue-400"></i>
+                        </div>
+                        <label class="cursor-pointer block">
+                            <span class="text-lg font-semibold text-gray-700">Click to upload or drag and drop</span>
+                            <p class="text-sm text-gray-500 mt-2">PNG, JPG, GIF, BMP up to 16MB</p>
+                            <input type="file" name="file" required accept="image/*" class="hidden" id="fileInput" onchange="previewImage(event)">
+                        </label>
+                        <div id="imagePreview" class="mt-4"></div>
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-lg transition">
+                        <i class="fas fa-upload mr-2"></i> Upload Prescription
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Camera Capture Section -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Capture from Camera</h3>
+                <div class="bg-gray-100 rounded-lg p-6 space-y-4">
+                    <div class="text-center">
+                        <i class="fas fa-camera text-5xl text-blue-400 mb-4"></i>
+                    </div>
+                    <video id="cameraVideo" class="w-full rounded-lg bg-black hidden" autoplay playsinline></video>
+                    <canvas id="cameraCanvas" class="hidden"></canvas>
+                    
+                    <div id="cameraPreview" class="hidden">
+                        <img id="capturedImage" class="w-full rounded-lg border-2 border-blue-300">
+                    </div>
+                    
+                    <button type="button" onclick="startCamera()" id="startCameraBtn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-lg transition">
+                        <i class="fas fa-video mr-2"></i> Start Camera
+                    </button>
+                    
+                    <button type="button" onclick="capturePhoto()" id="captureBtn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-lg transition hidden">
+                        <i class="fas fa-camera mr-2"></i> Capture Photo
+                    </button>
+                    
+                    <button type="button" onclick="stopCamera()" id="stopCameraBtn" class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-2 rounded-lg transition hidden">
+                        <i class="fas fa-stop mr-2"></i> Stop Camera
+                    </button>
+                    
+                    <button type="button" onclick="uploadCapturedImage()" id="uploadCapturedBtn" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 rounded-lg transition hidden">
+                        <i class="fas fa-check-circle mr-2"></i> Process Prescription
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let stream = null;
+let capturedImageData = null;
+
+function previewImage(event) {
+    const file = event.target.files[0];
+    const preview = document.getElementById('imagePreview');
+    
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = `<img src="${e.target.result}" class="mt-4 rounded-lg max-h-80 mx-auto border-2 border-blue-300" alt="Preview">`;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function startCamera() {
+    const video = document.getElementById('cameraVideo');
+    const startBtn = document.getElementById('startCameraBtn');
+    const captureBtn = document.getElementById('captureBtn');
+    const stopBtn = document.getElementById('stopCameraBtn');
+    
+    navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' }
+    }).then(function(s) {
+        stream = s;
+        video.srcObject = stream;
+        video.classList.remove('hidden');
+        
+        startBtn.classList.add('hidden');
+        captureBtn.classList.remove('hidden');
+        stopBtn.classList.remove('hidden');
+    }).catch(function(err) {
+        alert('Unable to access camera: ' + err.message);
+    });
+}
+
+function capturePhoto() {
+    const video = document.getElementById('cameraVideo');
+    const canvas = document.getElementById('cameraCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+    
+    capturedImageData = canvas.toDataURL('image/jpeg');
+    
+    const preview = document.getElementById('cameraPreview');
+    const img = document.getElementById('capturedImage');
+    img.src = capturedImageData;
+    preview.classList.remove('hidden');
+    
+    document.getElementById('uploadCapturedBtn').classList.remove('hidden');
+}
+
+function stopCamera() {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+    }
+    
+    document.getElementById('cameraVideo').classList.add('hidden');
+    document.getElementById('startCameraBtn').classList.remove('hidden');
+    document.getElementById('captureBtn').classList.add('hidden');
+    document.getElementById('stopCameraBtn').classList.add('hidden');
+}
+
+function uploadCapturedImage() {
+    if (!capturedImageData) {
+        alert('Please capture an image first');
+        return;
+    }
+    
+    const canvas = document.getElementById('cameraCanvas');
+    canvas.toBlob(function(blob) {
+        const formData = new FormData();
+        formData.append('file', blob, 'prescription_capture.jpg');
+        
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData
+        }).then(r => r.text()).then(html => {
+            document.open();
+            document.write(html);
+            document.close();
+        });
+    }, 'image/jpeg');
+}
+
+// Drag and drop
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('border-blue-500', 'bg-blue-50');
+});
+
+dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+});
+
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+    fileInput.files = e.dataTransfer.files;
+    previewImage({target: {files: e.dataTransfer.files}});
+});
+</script>
+
+{% elif step == 'review' %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-4">Review Extracted Medicines</h1>
+        
+        <!-- Uploaded Image Preview -->
+        {% if image_path %}
+        <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-300">
+            <h3 class="font-bold text-gray-800 mb-3">Uploaded Prescription:</h3>
+            <img src="{{ image_path }}" alt="Prescription" class="rounded-lg max-h-96 mx-auto">
+        </div>
+        {% endif %}
+        
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <p class="text-sm text-blue-700"><strong>OCR Result:</strong> Review the medicines extracted below and make corrections if needed.</p>
+        </div>
+        
+        <div class="overflow-x-auto mb-6">
+            <table class="w-full border-collapse">
+                <thead class="bg-gray-100 border-b-2 border-gray-300">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Medicine Name</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Dosage</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Frequency</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Start Date</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Duration (days)</th>
+                    </tr>
+                </thead>
+                <tbody id="medicinesTable">
+                    {% for medicine in medicines %}
+                    <tr class="border-b border-gray-200 hover:bg-gray-50">
+                        <td class="px-4 py-3"><input type="text" value="{{ medicine.name }}" class="medicine-name w-full px-2 py-1 border border-gray-300 rounded"></td>
+                        <td class="px-4 py-3"><input type="text" value="{{ medicine.dosage }}" class="medicine-dosage w-full px-2 py-1 border border-gray-300 rounded"></td>
+                        <td class="px-4 py-3"><input type="text" value="{{ medicine.timing }}" class="medicine-timing w-full px-2 py-1 border border-gray-300 rounded"></td>
+                        <td class="px-4 py-3"><input type="date" value="{{ medicine.start_date or '' }}" class="medicine-start_date w-full px-2 py-1 border border-gray-300 rounded"></td>
+                        <td class="px-4 py-3"><input type="number" value="{{ medicine.duration }}" class="medicine-duration w-full px-2 py-1 border border-gray-300 rounded"></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="flex gap-4">
+            <button type="button" onclick="savePrescription()" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg transition">
+                <i class="fas fa-check mr-2"></i> Confirm & Save
+            </button>
+            <a href="{{ url_for('upload_prescription') }}" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 rounded-lg transition text-center">
+                <i class="fas fa-redo mr-2"></i> Upload New
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden fields to store filepath and raw_text -->
+<script>
+const prescriptionData = {
+    filepath: '{{ filepath }}',
+    rawText: `{{ raw_text }}`
+};
+
+function savePrescription() {
+    const medicines = [];
+    const rows = document.querySelectorAll('#medicinesTable tr');
+    
+    if (rows.length === 0) {
+        alert('No medicines to save');
+        return;
+    }
+    
+    rows.forEach(row => {
+        const nameInput = row.querySelector('.medicine-name');
+        const dosageInput = row.querySelector('.medicine-dosage');
+        const timingInput = row.querySelector('.medicine-timing');
+        const durationInput = row.querySelector('.medicine-duration');
+        
+        if (nameInput && dosageInput && timingInput && durationInput) {
+            medicines.push({
+                name: nameInput.value.trim() || 'Unknown Medicine',
+                dosage: dosageInput.value.trim() || 'Unknown',
+                timing: timingInput.value.trim() || '1x/day',
+                duration: parseInt(durationInput.value) || 7
+            });
+        }
+    });
+    
+    if (medicines.length === 0) {
+        alert('Please enter at least one medicine');
+        return;
+    }
+    
+    console.log('Saving prescription with data:', {
+        filepath: prescriptionData.filepath,
+        medicines: medicines
+    });
+    
+    fetch('{{ url_for("save_prescription") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            filepath: prescriptionData.filepath,
+            raw_text: prescriptionData.rawText,
+            medicines: medicines
+        })
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        if (data.success) {
+            alert('Prescription saved successfully!');
+            window.location.href = '{{ url_for("prescriptions") }}';
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error saving prescription: ' + error.message);
+    });
+}
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,122 @@
+{% extends 'layout.html' %}
+
+{% block title %}View Prescription - MediGuard{% endblock %}
+{% block page_title %}Prescription Details{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <div class="mb-6 pb-6 border-b border-gray-200">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">{{ prescription.filename }}</h1>
+            <p class="text-gray-600">
+                <i class="far fa-calendar mr-2"></i> Uploaded: {{ prescription.uploaded_on.strftime('%Y-%m-%d %H:%M') }}
+            </p>
+        </div>
+        
+        {% if prescription.medicines %}
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Medicines</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse">
+                    <thead class="bg-gray-100 border-b-2 border-gray-300">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Medicine</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Dosage</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Frequency</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Duration</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Verified</th>
+                            <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for medicine in prescription.medicines %}
+                        <tr class="border-b border-gray-200 hover:bg-gray-50" id="medicine-row-{{ medicine.id }}">
+                            <td class="px-4 py-3 font-semibold text-gray-800">
+                                <input type="text" class="medicine-name-{{ medicine.id }} w-full px-2 py-1 border border-transparent hover:border-gray-300 rounded" value="{{ medicine.name }}">
+                            </td>
+                            <td class="px-4 py-3">
+                                <input type="text" class="medicine-dosage-{{ medicine.id }} w-full px-2 py-1 border border-transparent hover:border-gray-300 rounded" value="{{ medicine.dosage }}">
+                            </td>
+                            <td class="px-4 py-3">
+                                <input type="text" class="medicine-timing-{{ medicine.id }} w-full px-2 py-1 border border-transparent hover:border-gray-300 rounded" value="{{ medicine.timing }}">
+                            </td>
+                            <td class="px-4 py-3">
+                                <input type="number" class="medicine-duration-{{ medicine.id }} w-16 px-2 py-1 border border-transparent hover:border-gray-300 rounded" value="{{ medicine.duration }}">
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="px-3 py-1 rounded-full text-sm font-semibold
+                                    {% if medicine.verified_status == 'valid' %}
+                                        bg-green-100 text-green-800
+                                    {% elif medicine.verified_status == 'fake' %}
+                                        bg-red-100 text-red-800
+                                    {% elif medicine.verified_status == 'suspicious' %}
+                                        bg-yellow-100 text-yellow-800
+                                    {% else %}
+                                        bg-gray-100 text-gray-800
+                                    {% endif %}
+                                ">
+                                    {{ medicine.verified_status }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <button type="button" onclick="editMedicine('{{ medicine.id }}')" class="text-blue-600 hover:text-blue-800 mr-3">
+                                    <i class="fas fa-save"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-center py-8">No medicines found for this prescription</p>
+        {% endif %}
+        
+        <div class="flex gap-4 pt-6 border-t border-gray-200">
+            <a href="{{ url_for('prescriptions') }}" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 rounded-lg text-center transition">
+                <i class="fas fa-arrow-left mr-2"></i> Back to Prescriptions
+            </a>
+            <a href="{{ url_for('upload_prescription') }}" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-lg text-center transition">
+                <i class="fas fa-upload mr-2"></i> Upload Another
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+function editMedicine(medicineId) {
+    medicineId = parseInt(medicineId);
+    const name = document.querySelector(`.medicine-name-${medicineId}`).value;
+    const dosage = document.querySelector(`.medicine-dosage-${medicineId}`).value;
+    const timing = document.querySelector(`.medicine-timing-${medicineId}`).value;
+    const duration = document.querySelector(`.medicine-duration-${medicineId}`).value;
+    
+    fetch('{{ url_for("edit_medicine", id=prescription.id) }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            medicine_id: medicineId,
+            name: name,
+            dosage: dosage,
+            timing: timing,
+            duration: duration
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Medicine updated successfully!');
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating medicine');
+    });
+}
+</script>
+{% endblock %}
