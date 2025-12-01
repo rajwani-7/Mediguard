@@ -938,10 +938,13 @@ if __name__ == '__main__':
         print(f"OpenCV Available: {CV2_AVAILABLE}")
         print(f"Pyzbar Available: {PYZBAR_AVAILABLE}")
         print("="*60)
-        print("Navigate to: http://localhost:5000")
+        port = int(os.environ.get('PORT', 5000))
+        print(f"Navigate to: http://localhost:{port}")
         print("="*60 + "\n")
     
     try:
-        app.run(debug=True, port=5000)
+        port = int(os.environ.get('PORT', 5000))
+        debug_mode = os.environ.get('FLASK_ENV', 'development') == 'development'
+        app.run(debug=debug_mode, port=port, host='0.0.0.0')
     finally:
         stop_scheduler()
